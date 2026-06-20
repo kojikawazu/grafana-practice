@@ -1,0 +1,27 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# nuxt / nitro build output
+.nuxt/
+.output/
+.nitro/
+dist/
+
+# env / secrets
+.env
+.env.*
+!.env.example
+
+# test / coverage
+coverage/
+
+# logs
+*.log
+npm-debug.log*
+
+# os
+.DS_Store
+
+# docker volumes (bind-mounted local data, if any)
+.data/

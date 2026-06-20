@@ -1,0 +1,16 @@
+{
+  "name": "grafana-practice",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Grafana + Prometheus + OpenTelemetry 監視基盤モノレポ（example: Nuxt3 タスク管理アプリ）",
+  "packageManager": "pnpm@10.33.0",
+  "scripts": {
+    "dev": "pnpm --filter task-app dev",
+    "build": "pnpm --filter task-app build",
+    "test": "pnpm --filter task-app test",
+    "up": "docker compose up -d --build",
+    "down": "docker compose down",
+    "down:clean": "docker compose down -v",
+    "logs": "docker compose logs -f"
+  }
+}
