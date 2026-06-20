@@ -1,0 +1,165 @@
+# Grafana + Prometheus + OpenTelemetry 監視スタック + example task-app。
+# 起動: docker compose up -d --build / 破棄: docker compose down -v
+# イメージタグは検証時点の安定版。必要に応じて更新する。
+
+services:
+  # ---- 監視対象 example: Nuxt3 タスク管理アプリ ----
+  task-app:
+    build:
+      context: .
+      dockerfile: apps/task-app/Dockerfile
+    environment:
+      PGHOST: postgres
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER}
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PGDATABASE: ${POSTGRES_DB}
+      OTEL_SERVICE_NAME: ${OTEL_SERVICE_NAME:-task-app}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://localhost:3000/api/tasks').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  # ---- アプリ DB ----
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./apps/task-app/db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # ---- テレメトリ収集ハブ ----
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.119.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./infra/otel-collector/config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317" # OTLP gRPC
+      - "4318:4318" # OTLP HTTP
+      - "8889:8889" # Prometheus exporter
+    depends_on:
+      - tempo
+      - loki
+      - prometheus
+    restart: unless-stopped
+
+  # ---- メトリクス ----
+  prometheus:
+    image: prom/prometheus:v3.0.1
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--web.enable-otlp-receiver"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - promdata:/prometheus
+    ports:
+      - "9090:9090"
+    restart: unless-stopped
+
+  # ---- トレース ----
+  tempo:
+    image: grafana/tempo:2.6.1
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./infra/tempo/tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempodata:/var/tempo
+    ports:
+      - "3200:3200"
+    restart: unless-stopped
+
+  # ---- ログ ----
+  loki:
+    image: grafana/loki:3.3.0
+    command: ["-config.file=/etc/loki/loki-config.yaml"]
+    volumes:
+      - ./infra/loki/loki-config.yaml:/etc/loki/loki-config.yaml:ro
+      - lokidata:/loki
+    ports:
+      - "3100:3100"
+    restart: unless-stopped
+
+  # ---- 可視化 ----
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GF_SECURITY_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:-admin}
+      GF_USERS_DEFAULT_THEME: light
+    volumes:
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafanadata:/var/lib/grafana
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+      - tempo
+      - loki
+    restart: unless-stopped
+
+  # ---- コンテナ指標 ----
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    privileged: true
+    devices:
+      - /dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+
+  # ---- ホスト指標 ----
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--path.rootfs=/rootfs"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  promdata:
+  tempodata:
+  lokidata:
+  grafanadata:

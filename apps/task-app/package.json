@@ -1,0 +1,32 @@
+{
+  "name": "task-app",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "start": "node --import ./instrumentation.mjs .output/server/index.mjs",
+    "test": "vitest run",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "nuxt": "^3.14.0",
+    "vue": "^3.5.0",
+    "pg": "^8.13.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api-logs": "^0.54.0",
+    "@opentelemetry/sdk-node": "^0.54.0",
+    "@opentelemetry/sdk-logs": "^0.54.0",
+    "@opentelemetry/sdk-metrics": "^1.27.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.52.0",
+    "@opentelemetry/exporter-trace-otlp-grpc": "^0.54.0",
+    "@opentelemetry/exporter-metrics-otlp-grpc": "^0.54.0",
+    "@opentelemetry/exporter-logs-otlp-grpc": "^0.54.0",
+    "@opentelemetry/instrumentation-runtime-node": "^0.10.0"
+  },
+  "devDependencies": {
+    "vitest": "^2.1.0",
+    "pg-mem": "^3.0.0",
+    "@types/pg": "^8.11.0"
+  }
+}
