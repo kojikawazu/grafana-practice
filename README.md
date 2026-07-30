@@ -18,7 +18,7 @@ Grafana + Prometheus + OpenTelemetry による監視（オブザーバビリテ�
 ```
 
 - アプリは「OTLP を Collector に送る」だけ。バックエンドはアプリに依存しないため再利用できる。
-- 設計・仕様の詳細は [`docs/`](./docs/README.md)、開発ルールは [`CLAUDE.md`](./CLAUDE.md) / [`.claude/rules/`](./.claude/rules/) を参照。
+- 設計・仕様の詳細は [`docs/`](./docs/README.md)、開発ルールは [`CLAUDE.md`](./CLAUDE.md) / [`AGENTS.md`](./AGENTS.md) / [`.claude/rules/`](./.claude/rules/) を参照。
 
 ## セットアップ
 
@@ -70,3 +70,14 @@ docs/            仕様・設計ドキュメント（01〜11 + 索引）
 監視スタック（`infra/` と compose のバックエンド群）は不変のまま、新アプリ側で OTel SDK を導入し
 `OTEL_EXPORTER_OTLP_ENDPOINT` を Collector に向け、`OTEL_SERVICE_NAME` を設定するだけで統合できる。
 詳細は [`docs/09-architecture-specification.md`](./docs/09-architecture-specification.md#将来構成web-アプリ差し替え)。
+
+## AI エージェント向けルール
+
+開発ルールの正本は [`.claude/rules/`](./.claude/rules/) です。Claude Code は [`CLAUDE.md`](./CLAUDE.md) から、Codex はリポジトリ階層の [`AGENTS.md`](./AGENTS.md) から同じルールを参照します。ルール本文は複製せず、変更対象に最も近い `AGENTS.md` が指定する追加ルールも適用します。
+
+| 対象 | Codex 向け指示ファイル | 追加で確認する内容 |
+|---|---|---|
+| リポジトリ全体 | [`AGENTS.md`](./AGENTS.md) | 共通の開発ルール |
+| `apps/task-app/**` | [`apps/task-app/AGENTS.md`](./apps/task-app/AGENTS.md) | Nuxt / Nitro / PostgreSQL / OTel |
+| `apps/task-app/server/**` | [`apps/task-app/server/AGENTS.md`](./apps/task-app/server/AGENTS.md) | API 契約とテスト |
+| `infra/**` | [`infra/AGENTS.md`](./infra/AGENTS.md) | 監視スタックの設定整合性 |
