@@ -40,8 +40,20 @@ export class TaskNotFoundError extends Error {
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+/**
+ * 取得する列を明示列挙する（`SELECT *` を使わない）。
+ * 列が増えたときに自動で API へ漏れないようにするためで、
+ * マッパー（mapRow）による絞り込みと合わせて二重に防ぐ。
+ */
 const SELECT_COLUMNS = "id, title, done, created_at";
 
+/**
+ * DB の行を API レスポンスの形へ変換する。
+ *
+ * スプレッド（`{ ...row }`）を使わないのが要点。列が増えた瞬間に
+ * 自動公開されてしまうため、返すフィールドは常に手で列挙する。
+ * ここが snake_case（created_at）→ camelCase（createdAt）の変換点でもある。
+ */
 function mapRow(row: any): Task {
   const createdAt =
     row.created_at instanceof Date
@@ -73,6 +85,8 @@ function assertUuid(id: string): void {
 }
 
 export async function listTasks(db: Queryable): Promise<Task[]> {
+  // 第 2 ソートキーの id は同時刻タスクの順序を安定させるため。
+  // これが無いと created_at が同値の行の並びが実行ごとに変わりうる。
   const { rows } = await db.query(
     `SELECT ${SELECT_COLUMNS} FROM tasks ORDER BY created_at ASC, id ASC`
   );
@@ -98,6 +112,9 @@ export async function updateTask(
 ): Promise<Task> {
   assertUuid(id);
 
+  // SET 句は「渡されたキーだけ」を動的に組み立てる（PATCH の部分更新）。
+  // 列名は固定文字列、値は必ず $1, $2... のプレースホルダで渡す。
+  // 値を文字列連結すると SQL インジェクションになるため、この分離を崩さない。
   const sets: string[] = [];
   const params: unknown[] = [];
 
