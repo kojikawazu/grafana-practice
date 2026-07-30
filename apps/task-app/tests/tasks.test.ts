@@ -14,9 +14,19 @@ import {
 /**
  * pg-mem で本物の SQL を実行する実 DB を作る。
  * ビジネスロジック（クエリ・バリデーション）はモックせず、外部 I/O だけを差し替える。
+ *
+ * この方式が成立するのは、ロジック側が DB ハンドルを `Queryable` として
+ * **引数で受け取る**設計になっているため（`server/utils/tasks.ts`）。
+ * モジュール内部で `getPool()` を直に呼んでいたら、実 DB なしでは検証できない。
+ *
+ * SQL 文字列は本番と全く同じものが実行される。したがって「SELECT の列名を
+ * 間違えた」「SET 句の組み立てを壊した」といった不具合も、このテストで落ちる。
  */
 function makeDb(): Queryable {
   const mem = newDb();
+  // pgcrypto の gen_random_uuid() は pg-mem に組み込まれていないため、
+  // 同名の関数を自前で登録して DEFAULT 句を成立させる（db/init.sql と対応）。
+  // impure: true にしないと呼び出しごとに同じ値が返り、PRIMARY KEY が衝突する。
   mem.public.registerFunction({
     name: "gen_random_uuid",
     returns: DataType.uuid,
@@ -35,16 +45,25 @@ function makeDb(): Queryable {
   return new Pool() as unknown as Queryable;
 }
 
+/**
+ * 「UUID の形式としては正しいが、存在しない」id。
+ * 形式不正（400 相当）と不在（404 相当）を区別して検証するために必要。
+ * `"not-a-uuid"` を使うと assertUuid で弾かれ、NotFound の経路に到達しない。
+ */
 const MISSING_ID = "00000000-0000-0000-0000-000000000000";
 
 describe("tasks service", () => {
   let db: Queryable;
 
+  // 各テストの前に DB を作り直す。テーブルごと新品になるため、
+  // テスト間で状態が漏れず、実行順に依存しない。
   beforeEach(() => {
     db = makeDb();
   });
 
   // ---- 正常系 ----
+  // 分類ごとに describe を分け、正常系 1 : 準正常系+異常系 2 以上の比率を
+  // 見た目で確認できるようにしている（`.claude/rules/testing.md`）。現状 4 : 8。
   describe("正常系", () => {
     it("createTask: id/createdAt を採番し done=false で返す", async () => {
       const task = await createTask(db, { title: "  買い物  " });
@@ -60,7 +79,9 @@ describe("tasks service", () => {
       const a = await createTask(db, { title: "A" });
       const b = await createTask(db, { title: "B" });
       const c = await createTask(db, { title: "C" });
-      // created_at を C < A < B の順に明示設定して並び順を検証
+      // created_at を C < A < B の順に明示設定して並び順を検証。
+      // 連続実行だと now() の差が出ず「挿入順のまま偶然通る」ため、
+      // 意図的に投入順と異なる並びを作って ORDER BY が効いていることを示す。
       await db.query("UPDATE tasks SET created_at = $1 WHERE id = $2", [
         "2026-01-01T00:00:00Z",
         c.id,
@@ -150,6 +171,10 @@ describe("tasks service", () => {
     });
 
     it("listTasks: DB エラーは握り潰さず伝播する", async () => {
+      // 想定外の障害（接続断）を再現する異常系。Queryable が
+      // インターフェースなので、失敗する実装を渡すだけで再現できる。
+      // ここで空配列にフォールバックされると「データが 0 件」と
+      // 「DB が落ちている」を画面が区別できなくなるため、伝播を仕様とする。
       const failing: Queryable = {
         query: () => Promise.reject(new Error("connection refused")),
       };

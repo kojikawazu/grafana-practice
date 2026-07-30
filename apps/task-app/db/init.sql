@@ -1,5 +1,8 @@
 -- task-app の初期スキーマ。
 -- PostgreSQL コンテナの docker-entrypoint-initdb.d で初回起動時に適用される。
+-- 「初回」= データボリュームが空のときだけ。既存ボリュームがある状態で
+-- このファイルを変更しても再適用されないため、`docker compose down -v` で
+-- ボリュームごと破棄してから起動し直す必要がある。
 CREATE EXTENSION IF NOT EXISTS pgcrypto;  -- gen_random_uuid() 用
 
 CREATE TABLE IF NOT EXISTS tasks (
