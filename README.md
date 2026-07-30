@@ -81,3 +81,11 @@ docs/            仕様・設計ドキュメント（01〜11 + 索引）
 | `apps/task-app/**` | [`apps/task-app/AGENTS.md`](./apps/task-app/AGENTS.md) | Nuxt / Nitro / PostgreSQL / OTel |
 | `apps/task-app/server/**` | [`apps/task-app/server/AGENTS.md`](./apps/task-app/server/AGENTS.md) | API 契約とテスト |
 | `infra/**` | [`infra/AGENTS.md`](./infra/AGENTS.md) | 監視スタックの設定整合性 |
+
+ルールは「常時適用」と「対象パス限定」に分かれます。適用範囲の一覧は [`CLAUDE.md`](./CLAUDE.md) の表を参照してください。
+
+| 区分 | ルールファイル |
+|---|---|
+| 常時適用 | `shortcuts.md` / `workflow.md` / `quality-gate.md` / `documentation.md` / `git.md` / `testing.md` / `error-handling.md` / `duplication.md` / `dead-code.md` / `security.md` |
+| `apps/task-app/**` | `typescript.md` / `frontend.md` |
+| `apps/task-app/server/**` | `api.md` |

@@ -10,6 +10,20 @@
 - `.claude/rules/git.md`
 - `.claude/rules/testing.md`
 - `.claude/rules/shortcuts.md`
+- `.claude/rules/error-handling.md`
+- `.claude/rules/duplication.md`
+- `.claude/rules/dead-code.md`
+- `.claude/rules/security.md`
+
+## スタック別ルール
+
+変更対象のパスに応じて、次のルールも読んで適用します。
+
+| 対象パス | 適用するルール |
+|---|---|
+| `apps/task-app/**` | `.claude/rules/typescript.md` |
+| `apps/task-app/` の `pages` `components` `composables` `repositories` `utils` `types` `constants` `app.vue` | `.claude/rules/frontend.md` |
+| `apps/task-app/server/**` | `.claude/rules/api.md` |
 
 ## パス別ルール
 

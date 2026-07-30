@@ -15,4 +15,11 @@ Codex 向けには、同じルールを階層型の [`AGENTS.md`](./AGENTS.md) �
 | quality-gate.md | 全体 | 品質ゲート（セルフレビュー・設計/実装レビュー） |
 | documentation.md | 全体 | ドキュメント更新ルール |
 | git.md | 全体 | GitHub Flow・ブランチ命名・push 禁止物 |
-| testing.md | 全体 | テスト分類・原則 |
+| testing.md | 全体 | テスト分類・原則、テストツール（Vitest / pg-mem）・配置 |
+| error-handling.md | 全体 | エラーハンドリング方針（検証・ステータス・ログ） |
+| duplication.md | 全体 | 重複と共通化の判断基準 |
+| dead-code.md | 全体 | デッドコード禁止 |
+| security.md | 全体 | セキュリティ方針（インジェクション対策・シークレット・テレメトリ） |
+| typescript.md | `apps/task-app/**` | TypeScript 規約（type/interface・型/定数の配置・any 禁止） |
+| frontend.md | `apps/task-app/` の `pages` `components` `composables` 等 | Nuxt 3 フロントエンド設計・レイヤ依存 |
+| api.md | `apps/task-app/server/**` | Nitro Server API 設計・レスポンス整形・計装 |
